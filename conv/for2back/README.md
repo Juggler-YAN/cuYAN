@@ -82,8 +82,8 @@ b
 \begin{pmatrix}
 	0 & 0 & 0 & 0 \\
 	0 & \partial{y_{11}} & \partial{y_{12}} & 0 \\
-	0 & \partial{y_{21}} & \partial{y_{22}} & 0
-	0 & 0 & 0 & 0 \\
+	0 & \partial{y_{21}} & \partial{y_{22}} & 0 \\
+	0 & 0 & 0 & 0
 \end{pmatrix}
 \ast
 \begin{pmatrix}
@@ -156,6 +156,7 @@ $$\partial{X} = padding(\partial{Y}) \ast rot(W)$$
 
 $$\partial{W} = X \ast \partial{Y} $$
 
+4. 
 ### TODO
 
 - [x] bgrad conv
