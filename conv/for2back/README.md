@@ -6,19 +6,19 @@
 \begin{pmatrix}
 	x_{11} & x_{12} & x_{13} \\
 	x_{21} & x_{22} & x_{23} \\
-	x_{31} & x_{32} & x_{33} \\
+	x_{31} & x_{32} & x_{33}
 \end{pmatrix}
 \ast
 \begin{pmatrix}
 	w_{11} & w_{12} \\
-	w_{21} & w_{22} \\
+	w_{21} & w_{22}
 \end{pmatrix}
 +
 b
 =
 \begin{pmatrix}
 	y_{11} & y_{12} \\
-	y_{21} & y_{22} \\
+	y_{21} & y_{22}
 \end{pmatrix}
 ```
 
@@ -30,7 +30,7 @@ b
 	y_{11} &= w_{11}x_{11} + w_{12}x_{12} + w_{21}x_{21} + w_{22}x_{22} + b \\
 	y_{12} &= w_{11}x_{12} + w_{12}x_{13} + w_{21}x_{22} + w_{22}x_{23} + b \\
 	y_{21} &= w_{11}x_{21} + w_{12}x_{22} + w_{21}x_{31} + w_{22}x_{32} + b \\
-	y_{22} &= w_{11}x_{22} + w_{12}x_{23} + w_{21}x_{32} + w_{22}x_{33} + b \\
+	y_{22} &= w_{11}x_{22} + w_{12}x_{23} + w_{21}x_{32} + w_{22}x_{33} + b
 \end{aligned}
 \right.
 ```
@@ -63,7 +63,7 @@ b
 	\partial{x_{23}} &= \partial{y_{12}}w_{22} + \partial{y_{22}}w_{12} \\
 	\partial{x_{31}} &= \partial{y_{21}}w_{21} \\
 	\partial{x_{32}} &= \partial{y_{21}}w_{22} + \partial{y_{22}}w_{21} \\
-	\partial{x_{33}} &= \partial{y_{22}}w_{22} \\
+	\partial{x_{33}} &= \partial{y_{22}}w_{22}
 \end{aligned}
 \right.
 ```
@@ -76,23 +76,23 @@ b
 \begin{pmatrix}
 	\partial{x_{11}} & \partial{x_{12}} & \partial{x_{13}} \\
 	\partial{x_{21}} & \partial{x_{22}} & \partial{x_{23}} \\
-	\partial{x_{31}} & \partial{x_{32}} & \partial{x_{33}} \\
+	\partial{x_{31}} & \partial{x_{32}} & \partial{x_{33}}
 \end{pmatrix}
 =
 \begin{pmatrix}
 	0 & 0 & 0 & 0 \\
 	0 & \partial{y_{11}} & \partial{y_{12}} & 0 \\
-	0 & \partial{y_{21}} & \partial{y_{22}} & 0 \\
+	0 & \partial{y_{21}} & \partial{y_{22}} & 0
 	0 & 0 & 0 & 0 \\
 \end{pmatrix}
 \ast
 \begin{pmatrix}
 	w_{22} & w_{21} \\
-	w_{12} & w_{11} \\
+	w_{12} & w_{11}
 \end{pmatrix}
 ```
 
-与之类似，分析可得，convBD 转换为 convF 需要：
+与之类似，分析可得，dgrad conv 转换为 conv 需要：
 
 对于 $\partial{Y}$，
 - 填充 $p$ 即填充 $k-p-1$行或列，注意指的是卷积核膨胀后的 $k=(k-1)*(d-1)+k=(k-1)*d+1$
@@ -111,10 +111,55 @@ $$\partial{X} = padding(\partial{Y}) \ast rot(W)$$
 
 3. wgrad conv
 
+```math
+\left\{
+\begin{aligned}
+	\partial{w_{11}} &= \partial{y_{11}}x_{11} + \partial{y_{12}}x_{12}  + \partial{y_{21}}x_{21}  + \partial{y_{22}}x_{22} \\
+	\partial{w_{12}} &= \partial{y_{11}}x_{12} + \partial{y_{12}}x_{13}  + \partial{y_{21}}x_{22}  + \partial{y_{22}}x_{23} \\
+	\partial{w_{21}} &= \partial{y_{11}}x_{21} + \partial{y_{12}}x_{22}  + \partial{y_{21}}x_{31}  + \partial{y_{22}}x_{32} \\
+	\partial{w_{22}} &= \partial{y_{11}}x_{22} + \partial{y_{12}}x_{23}  + \partial{y_{21}}x_{32}  + \partial{y_{22}}x_{33}
+\end{aligned}
+\right.
+```
+
+即
+
+```math
+\begin{pmatrix}
+	x_{11} & x_{12} & x_{13} \\
+	x_{21} & x_{22} & x_{23} \\
+	x_{31} & x_{32} & x_{33}
+\end{pmatrix}
+\ast
+\begin{pmatrix}
+	\partial{y_{11}} & \partial{y_{12}} \\
+	\partial{y_{21}} & \partial{y_{22}}
+\end{pmatrix}
+=
+\begin{pmatrix}
+	\partial{w_{11}} & \partial{w_{12}} \\
+	\partial{w_{21}} & \partial{w_{22}}
+\end{pmatrix}
+```
+
+与之类似，分析可得，wgrad conv 转换为 conv 需要：
+
+对于 $X$，
+
+- 填充 $p$ 即填充 $p$ 行或列
+- 膨胀 $d$ 即跨步为 $s=d$
+
+对于 $\partial{Y}$，
+- 跨步 $s$ 即膨胀为 $d=s$
+
+即
+
+$$\partial{W} = X \ast \partial{Y} $$
+
 ### TODO
 
-- [ ] bgrad conv
-- [ ] dgrad conv
-- [ ] wgrad conv
+- [x] bgrad conv
+- [x] dgrad conv
+- [x] wgrad conv
 - [ ] dgrad conv -> group conv
 - [ ] wgrad conv -> group conv
