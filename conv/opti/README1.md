@@ -4,6 +4,7 @@
 
 - [ ] conv
   - [ ] 折叠优化 C,M,C&&M
-- [ ] bgrad conv
-- [ ] dgrad conv
-- [ ] wgrad conv
+
+C 折叠 抽 H,W 维补充 C 维
+M 折叠
+C,M 折叠

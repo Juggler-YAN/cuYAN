@@ -155,12 +155,3 @@ $$\partial{X} = padding(\partial{Y}) \ast rot(W)$$
 即
 
 $$\partial{W} = X \ast \partial{Y} $$
-
-4. 
-### TODO
-
-- [x] bgrad conv
-- [x] dgrad conv
-- [x] wgrad conv
-- [ ] dgrad conv -> group conv
-- [ ] wgrad conv -> group conv
