@@ -37,4 +37,5 @@ $$k' = (d - 1) * (k - 1) + k = d * (k - 1) + 1$$
 $$(N * H * W * C)*sizeof(input) + (C * R * S * M)*sizeof(conv) + (N * E * F * M)*sizeof(output)$$
 
 3. 计算量
+
 $$N * E * F * M * C * R * S * 2$$
