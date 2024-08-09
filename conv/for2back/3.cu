@@ -30,14 +30,13 @@ for (int c = 0; c < C; ++c) {
                             int real_e = e / SH;                        // dy, index
                             int real_f = f / SW;
                             for (int n = 0; n < N; ++n) {
-                                tmp += __half2float(((half_t *)x_h)[IX(n, real_h, real_w, c)]) * __half2float(((half_t *)dy_h)[IDY(n, real_e, real_f, m)]);
+                                tmp += (float)x[IX(n, real_h, real_w, c)] * (float)dy[IDY(n, real_e, real_f, m)];
                             }
                         }
                     }
                 }
-                printf("%8.4f ", tmp);
+                dw[IDW(c, r, s, m)] = tmp;
             }
-            printf("\n");
         }
     }
 }
