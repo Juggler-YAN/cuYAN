@@ -62,5 +62,14 @@ $$ NHWC * CRSM = NEFM $$
 $$ (EF, CDRDS) (CDRDS, M) = (EF, M)$$
 
 
-- [ ] FFT method
+3. FFT
+
+时域中的卷积等效于频域中的乘法，所以可以对输入数据和卷积核做FFT后进行乘法运算再做IFFT来替代卷积运算。注意这里的卷积其实指的是互相关运算，卷积需要把卷积核旋转180°而互相关运算不用。
+
+
+4. Winograd Algorithm
+
+### TODO
+
+- [ ] FFT：python 1D -> CUDA 2D
 - [ ] Winograd Algorithm
