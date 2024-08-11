@@ -1,5 +1,5 @@
 /*
- * 方法二：Img2col+gemm
+ * 方法二：Img2col
  */
 
 #define IX(n, h, w, c) ((((n)*H + h) * W + w) * C + c)
