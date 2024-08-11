@@ -69,21 +69,21 @@ $$ (EF, CDRDS) (CDRDS, M) = (EF, M)$$
 
 1. Winograd Algorithm
 
-$F(m,n)$ 最小乘法次数是 $m+n-1$ 次，$F(m \times m,n \times n)$ 是 $(m+n-1)(m+n-1)$ 次
+$F(m,n)$ 最小乘法次数是 $m+n-1$ 次， $F(m \times m,n \times n)$ 是 $(m+n-1)(m+n-1)$ 次
 
 $F(m,n)$ 以 $F(2, 3)$ 为例，
 
 ```math
 \begin{pmatrix}
-	x_{1} & x_{2} & x_{3} & x_{4}
+	x_1 & x_2 & x_3 & x_4
 \end{pmatrix}
 \ast
 \begin{pmatrix}
-	w_{1} & w_{2} & w_{3}
+	w_1 & w_2 & w_3
 \end{pmatrix}
 =
 \begin{pmatrix}
-	y_{1} & y_{2}
+	y_1 & y_2
 \end{pmatrix}
 ```
 
@@ -91,18 +91,18 @@ img2col算法如下
 
 ```math
 \begin{pmatrix}
-	x_{1} & x_{2} & x_{3} \\
-	x_{2} & x_{3} & x_{4}
+	x_1 & x_2 & x_3 \\
+	x_2 & x_3 & x_4
 \end{pmatrix}
 \begin{pmatrix}
-	w_{1} \\
-	w_{2} \\
-	w_{3}
+	w_1 \\
+	w_2 \\
+	w_3
 \end{pmatrix}
 =
 \begin{pmatrix}
-	y_{1} \\
-	y_{2}
+	y_1 \\
+	y_2
 \end{pmatrix}
 ```
 
@@ -112,18 +112,18 @@ img2col算法如下
 
 ```math
 \begin{pmatrix}
-	x_{1} & x_{2} & x_{3} \\
-	x_{2} & x_{3} & x_{4}
+	x_1 & x_2 & x_3 \\
+	x_2 & x_3 & x_4
 \end{pmatrix}
 \begin{pmatrix}
-	w_{1} \\
-	w_{2} \\
-	w_{3}
+	w_1 \\
+	w_2 \\
+	w_3
 \end{pmatrix}
 =
 \begin{pmatrix}
-	y_{1} + y_{2} + y_{3} \\
-	y_{2} - y_{3} - y_{4}
+	y_1 + y_2 + y_3 \\
+	y_2 - y_3 - y_4
 \end{pmatrix}
 ```
 
@@ -212,9 +212,9 @@ y
 \end{pmatrix}^T
 ```
 
-$x$ 为输入，$w$为 卷积核，$y$ 为输出，$A^T$ 为输入变形矩阵，$B$ 为卷积核变形矩阵，$C^T$ 为输出变形矩阵
+$x$ 为输入， $w$为 卷积核， $y$ 为输出， $A^T$ 为输入变形矩阵， $B$ 为卷积核变形矩阵， $C^T$ 为输出变形矩阵
 
-根据shape的不同，$A$，$B$，$C$ 也会不同
+根据shape的不同， $A$， $B$， $C$ 也会不同
 
 $F(m \times m,n \times n)$ 以 $F(2 \times 2,3 \times 3)$ 为例，
 
@@ -273,6 +273,6 @@ $F(m \times m,n \times n)$ 以 $F(2 \times 2,3 \times 3)$ 为例，
 这样就又变成了1D Winograd的问题
 
 - 优点：减少乘法次数
-- 缺点：根据不同shape要计算不同的$A$，$B$，$C$，而且shape过大$A$，$B$，$C$也会过大，需要存储空间会变大，加法次数也会变大，导致累加后精度变差
+- 缺点：根据不同shape要计算不同的 $A$， $B$， $C$，而且shape过大 $A$， $B$， $C$也会过大，需要存储空间会变大，加法次数也会变大，导致累加后精度变差
 
 参考论文 [Winograd Algorithm](https://arxiv.org/pdf/1509.09308 "Winograd Algorithm")
