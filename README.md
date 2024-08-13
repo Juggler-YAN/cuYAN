@@ -25,9 +25,10 @@ This is my record of researching operator optimization.
 
 - [ ] calc
   - [ ] FFT
-    - [x] 算法验证 python 1D
+    - [x] 算法验证
     - [ ] CUDA 2D
       - [ ] FFT实现
   - [ ] Winograd Algorithm
-    - [x] 算法验证 python 1D && 2D
-    - [ ] CUDA 2D (F(2,3), p=?，s=1, d=1)
+    - [x] 算法验证
+    - [ ] CUDA 2D (F(2,3), p=0，s=1, d=1)
+- [ ] 
