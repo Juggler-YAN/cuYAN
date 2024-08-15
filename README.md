@@ -1,6 +1,19 @@
 # cuYAN
 This is my record of researching operator optimization.
 
+### TODO
+
+- [ ] gemm
+  - [ ] cannon
+  - [ ] fox
+  - [ ] summa
+  - [ ] strassen
+- [ ] calc
+  - [ ] FFT
+    - [ ] CUDA 2D
+  - [ ] Winograd Algorithm
+    - [ ] CUDA 2D (F(n,3), p=0，s=1, d=1)
+
 ### 关注指标
 1. 时间
 2. 带宽 = IO量/时间
@@ -19,16 +32,3 @@ This is my record of researching operator optimization.
 对于conv来说，
 - 输入数据的维度为 $N×H×W×C$ ，卷积核的维度为 $C×R×S×M$ ，输出数据的维度为 $N×E×F×M$ ，那么它要传输的数据量即IO量就是 $(N×H×W×C)*sizeof(input)+(C×R×S×M)*sizeof(conv)+(N×E×F×M)*sizeof(output)$
 - 输入数据的维度为 $N×H×W×C$ ，卷积核的维度为 $C×R×S×M$ ，输出数据的维度为 $N×E×F×M$ ，输出数据中每一个点需要 $C×R×S$ 次乘法计算， $(C×R×S-1)$ 次加法计算（不考虑偏置 b），输出数据中又有 $N×E×F×M$ 个点，所以它的计算量为 $(2×C×R×S-1)×N×E×F×M$
-
-
-### TODO
-
-- [ ] calc
-  - [ ] FFT
-    - [x] 算法验证
-    - [ ] CUDA 2D
-      - [ ] FFT实现
-  - [ ] Winograd Algorithm
-    - [x] 算法验证
-    - [ ] CUDA 2D (F(2,3), p=0，s=1, d=1)
-- [ ] 
