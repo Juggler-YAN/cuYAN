@@ -2,6 +2,7 @@
 #include <cudnn.h>
 #include <cuda_runtime.h>
 #include "./slidingwindow.h"
+#include "./img2col.h"
 
 #define N 6
 #define IN_C 5
@@ -95,7 +96,8 @@ int main() {
 
     // Compare
     float *calc_output = (float*)malloc(size_output * sizeof(float));
-    slidingwindow(h_input, h_filter, calc_output, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    // slidingwindow(h_input, h_filter, calc_output, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    img2col(h_input, h_filter, calc_output, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
     float diff = 0.0f;
     for (int i = 0; i < size_output; ++i) {
         diff += (h_output[i] - calc_output[i]);
