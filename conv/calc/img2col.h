@@ -17,7 +17,8 @@ void img2col(const float* input, const float* filter, float* output, const int N
         // (1,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (1,Cout,Hout,Wout)
         float *A = (float *)malloc((OUT_H * OUT_W) * (IN_C * K_H * K_W) * sizeof(float));
         float *B = (float *)malloc((IN_C * K_H * K_W) * OUT_C * sizeof(float));
-        // transform (1,Cin,Hin,Win) to matrix A(Hout*Wout,Cin*Hk*Wk), according to pad, stride and dilation
+        float *C = (float *)malloc(OUT_C * (OUT_H * OUT_W) * sizeof(float));
+        // 1.transform (1,Cin,Hin,Win) to matrix A(Hout*Wout,Cin*Hk*Wk), according to pad, stride and dilation
         for (int out_h = 0; out_h < OUT_H; ++out_h) {
             for (int out_w = 0; out_w < OUT_W; ++out_w) {
                 for (int in_c = 0; in_c < IN_C; ++in_c) {
@@ -35,7 +36,7 @@ void img2col(const float* input, const float* filter, float* output, const int N
                 }
             }
         }
-        // transform (Cout,Cin,Hk,Wk) to matrix B(Cin*Hk*Wk,Cout), according to dilation
+        // 2.transform (Cout,Cin,Hk,Wk) to matrix B(Cin*Hk*Wk,Cout), according to dilation
         for (int out_c = 0; out_c < OUT_C; ++out_c) {
             for (int in_c = 0; in_c < IN_C; ++in_c) {
                 for (int k_h = 0; k_h < DILA_K_H; k_h += DILATION_H) {
@@ -48,7 +49,7 @@ void img2col(const float* input, const float* filter, float* output, const int N
                 }
             }
         }
-        // gemm A(Hout*Wout,Cin*Hk*Wk) * B(Cin*Hk*Wk,Cout) = C(Hout*Wout,Cout)
+        // 3.gemm A(Hout*Wout,Cin*Hk*Wk) * B(Cin*Hk*Wk,Cout) = C(Hout*Wout,Cout)
         for (int out_c = 0; out_c < OUT_C; ++out_c) {
             for (int out_h = 0; out_h < OUT_H; ++out_h) {
                 for (int out_w = 0; out_w < OUT_W; ++out_w) {
@@ -57,13 +58,17 @@ void img2col(const float* input, const float* filter, float* output, const int N
                         temp += (float)A[(out_h * OUT_W + out_w) * (IN_C * DILA_K_H * DILA_K_W) + k] * 
                             (float)B[k * OUT_C + out_c];
                     }
-                    // write back
-                    output[IY(n, out_c, out_h, out_w)] = temp;
+                    C[IY(0, out_c, out_h, out_w)] = temp;
                 }
             }
         }
+        // 4.write back
+        for (int i = 0; i < OUT_C * OUT_H * OUT_W; ++i) {
+            output[n * OUT_C * OUT_H * OUT_W + i] = C[i];
+        }
         free(A);
         free(B);
+        free(C);
     }
 
 }
