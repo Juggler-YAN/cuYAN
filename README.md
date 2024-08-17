@@ -4,11 +4,10 @@ This is my record of researching operator optimization.
 ### TODO
 
 - [ ] gemm
-  - [ ] cannon
   - [ ] fox
-  - [ ] summa
   - [ ] strassen
 - [ ] calc
+  - [ ] NHWC -> NCHW
   - [ ] FFT
     - [ ] CUDA 2D
   - [ ] Winograd Algorithm

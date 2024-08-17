@@ -4,7 +4,7 @@
 1. 定义
 2. cannon 算法
 
-矩阵 $A$， $B$，$C$ 大小分别为 $(M,N)$， $(N,K)$， $(M,N)$ ，假设有 $P$ 个进程，可以分割成 $(\frac{M}{\sqrt{p}},\frac{K}{\sqrt{p}})$， $(\frac{K}{\sqrt{p}},\frac{N}{\sqrt{p}})$， $(\frac{M}{\sqrt{p}},\frac{N}{\sqrt{p}})$ 大小的子矩阵，每个进程对应一个子矩阵
+矩阵 $A$， $B$， $C$ 大小分别为 $(M,N)$， $(N,K)$， $(M,N)$ ，假设有 $P$ 个进程，可以分割成 $(\frac{M}{\sqrt{p}},\frac{K}{\sqrt{p}})$， $(\frac{K}{\sqrt{p}},\frac{N}{\sqrt{p}})$， $(\frac{M}{\sqrt{p}},\frac{N}{\sqrt{p}})$ 大小的子矩阵，每个进程对应一个子矩阵
 
 以 $P = 16$ 为例，
 

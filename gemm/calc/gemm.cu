@@ -91,13 +91,13 @@ int main() {
     }
     printf("\n--------diff:%f------\n", diff);
 
-
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
     free(h_A);
     free(h_B);
     free(h_C);
+    free(calc_C);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
 
     return 0;
 }

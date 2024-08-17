@@ -5,7 +5,7 @@
 1. 1D/2D/3D conv
 2. $1 \times 1$ conv，计算时可等效于 gemm
 3. transpose conv，和 dgrad conv 的计算一致
-4. dilated conv，$ dilation > 1 $ 的 conv
+4. dilated conv， $dilation > 1$ 的 conv
 5. group conv，split C to n group，n 组 $ NHWC_i*C_iRSM=NEFM$，reduce 后等于正常 conv
 6. separable conv
    1. spatial separable convolution，for example，conv kernel 可以分解为 alpha，beta 两个向量的乘积，可以先 * alpha，再 * beta
