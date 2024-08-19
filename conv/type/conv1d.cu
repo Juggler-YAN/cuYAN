@@ -1,29 +1,47 @@
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>
-#include "./slidingwindow.h"
-#include "./img2col.h"
 
 #define N 6
 #define IN_C 5
-#define IN_H 7
-#define IN_W 7
-#define K_H 3
-#define K_W 3
+#define IN_L 7
+#define K_L 3
 #define OUT_C 3
-#define OUT_H 3
-#define OUT_W 3
-#define PAD_H 1
-#define PAD_W 1
-#define STRIDE_H 2
-#define STRIDE_W 2
-#define DILATION_H 2
-#define DILATION_W 2
+#define OUT_L 3
+#define PAD_L 1
+#define STRIDE_L 2
+#define DILATION_L 2
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
         data[i] = (fabs(max - min) < 1e-5) ? min : ((max - min) * (rand() / (float)RAND_MAX) + min);
     }
+}
+
+void conv1d(const float* x, const float* w, float* y) {
+
+#define IX(n, in_c, in_l) (((n) * IN_C + in_c) * IN_L + in_l)
+#define IW(out_c, in_c, k_l) (((out_c) * IN_C + in_c) * K_L + k_l)
+#define IY(n, out_c, out_l) (((n) * OUT_C + out_c) * OUT_L + out_l)
+
+    for (int n = 0; n < N; ++n) {
+        for (int out_c = 0; out_c < OUT_C; ++out_c) {
+            for (int out_l = 0; out_l < OUT_L; ++out_l) {
+                float temp = 0.0f;
+                for (int k_l = 0; k_l < (DILATION_L - 1) * (K_L - 1) + K_L; k_l += DILATION_L) {
+                    int real_in_l = out_l * STRIDE_L + k_l - PAD_L;
+                    if (real_in_l >= 0 && real_in_l < IN_L) {
+                        int real_k_l = k_l / DILATION_L;
+                        for (int in_c = 0; in_c < IN_C; ++in_c) {
+                            temp += (float)x[IX(n, in_c, real_in_l)] * (float)w[IW(out_c, in_c, real_k_l)];
+                        }
+                    }
+                }
+                y[IY(n, out_c, out_l)] = temp;
+            }
+        }
+    }
+
 }
 
 int main() {
@@ -42,26 +60,26 @@ int main() {
     // Define the x tensor descriptor
     cudnnTensorDescriptor_t x_desc;
     cudnnCreateTensorDescriptor(&x_desc);
-    cudnnSetTensor4dDescriptor(x_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, IN_C, IN_H, IN_W);
+    cudnnSetTensor4dDescriptor(x_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, IN_C, IN_L, 1);
 
     // Define the convolution descriptor
     cudnnFilterDescriptor_t w_desc;
     cudnnCreateFilterDescriptor(&w_desc);
-    cudnnSetFilter4dDescriptor(w_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, OUT_C, IN_C, K_H, K_W);
+    cudnnSetFilter4dDescriptor(w_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, OUT_C, IN_C, K_L, 1);
 
     // Define the convolution descriptor
     cudnnConvolutionDescriptor_t conv_desc;
     cudnnCreateConvolutionDescriptor(&conv_desc);
-    cudnnSetConvolution2dDescriptor(conv_desc, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W, CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT);
+    cudnnSetConvolution2dDescriptor(conv_desc, PAD_L, 0, STRIDE_L, 1, DILATION_L, 1, CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT);
 
     // Define the y tensor descriptor
     cudnnTensorDescriptor_t y_desc;
     cudnnCreateTensorDescriptor(&y_desc);
-    cudnnSetTensor4dDescriptor(y_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, OUT_C, OUT_H, OUT_W);
+    cudnnSetTensor4dDescriptor(y_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, OUT_C, OUT_L, 1);
 
-    int size_x = N * IN_C * IN_H * IN_W;
-    int size_w = OUT_C * IN_C * K_H * K_W;
-    int size_y = N * OUT_C * OUT_H * OUT_W;
+    int size_x = N * IN_C * IN_L;
+    int size_w = OUT_C * IN_C * K_L;
+    int size_y = N * OUT_C * OUT_L;
 
     // Allocate host memory for x, w, and y
     float *h_x, *h_y, *h_w;
@@ -94,8 +112,7 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
-    slidingwindow(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
-    // img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    conv1d(h_x, h_w, calc_y);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);

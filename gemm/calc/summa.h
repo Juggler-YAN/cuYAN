@@ -13,11 +13,11 @@ void summa(const float *A, const float *B, float *C, const int M, const int N, c
             float *Cij = (float*)malloc(M / P1 * N / P2 * sizeof(float));
             for (int m = 0; m < M / P1; ++m) {
                 for (int n = 0; n < N / P2; ++n) {
-                    float tmp = 0.0f;
+                    float temp = 0.0f;
                     for (int k = 0; k < K; ++k) {
-                        tmp += Ai[m * K + k] * Bj[k * N + n];
+                        temp += Ai[m * K + k] * Bj[k * N + n];
                     }
-                    Cij[m * N / P2 + n] = tmp;
+                    Cij[m * N / P2 + n] = temp;
                 }
             }
             // 4.将Cij写回C

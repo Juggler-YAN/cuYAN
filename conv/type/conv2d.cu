@@ -1,8 +1,6 @@
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>
-#include "./slidingwindow.h"
-#include "./img2col.h"
 
 #define N 6
 #define IN_C 5
@@ -24,6 +22,38 @@ void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
         data[i] = (fabs(max - min) < 1e-5) ? min : ((max - min) * (rand() / (float)RAND_MAX) + min);
     }
+}
+
+void conv2d(const float* x, const float* w, float* y) {
+
+#define IX(n, in_c, in_h, in_w) ((((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w)
+#define IW(out_c, in_c, k_h, k_w) ((((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w)
+#define IY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
+
+    for (int n = 0; n < N; ++n) {
+        for (int out_c = 0; out_c < OUT_C; ++out_c) {
+            for (int out_h = 0; out_h < OUT_H; ++out_h) {
+                for (int out_w = 0; out_w < OUT_W; ++out_w) {
+                    float temp = 0.0f;
+                    for (int k_h = 0; k_h < (DILATION_H - 1) * (K_H - 1) + K_H; k_h += DILATION_H) {
+                        for (int k_w = 0; k_w < (DILATION_W - 1) * (K_W - 1) + K_W; k_w += DILATION_W) {
+                            int real_in_h = out_h * STRIDE_H + k_h - PAD_H;
+                            int real_in_w = out_w * STRIDE_W + k_w - PAD_W;
+                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < IN_W) {
+                                int real_k_h = k_h / DILATION_H;
+                                int real_k_w = k_w / DILATION_W;
+                                for (int in_c = 0; in_c < IN_C; ++in_c) {
+                                    temp += (float)x[IX(n, in_c, real_in_h, real_in_w)] * (float)w[IW(out_c, in_c, real_k_h, real_k_w)];
+                                }
+                            }
+                        }
+                    }
+                    y[IY(n, out_c, out_h, out_w)] = temp;
+                }
+            }
+        }
+    }
+
 }
 
 int main() {
@@ -94,8 +124,7 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
-    slidingwindow(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
-    // img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    conv2d(h_x, h_w, calc_y);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);

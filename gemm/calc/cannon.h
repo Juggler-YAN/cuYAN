@@ -9,17 +9,17 @@ void matrixLeft(float *A, const int M, const int K, const int P, const int row, 
     const int num = (K / P) * shift;
     for (int i = beg; i < end; ++i) {
         // shift
-        float *tmp = (float*)malloc(K * sizeof(float));
+        float *temp = (float*)malloc(K * sizeof(float));
         int j = 0;
         for (int k = num; k < K; ++k) {
-            tmp[j++] = A[i * K + k];
+            temp[j++] = A[i * K + k];
         }
         for (int k = 0; k < num; ++k) {
-            tmp[j++] = A[i * K + k];
+            temp[j++] = A[i * K + k];
         }
         // write_back
         for (int k = 0; k < K; ++k) {
-            A[i * K + k] = tmp[k];
+            A[i * K + k] = temp[k];
         }
     }
 }
@@ -31,17 +31,17 @@ void matrixUp(float *B, const int K, const int N, const int P, const int col, co
     const int num = (K / P) * shift;
     for (int j = beg; j < end; ++j) {
         // shift
-        float *tmp = (float*)malloc(K * sizeof(float));
+        float *temp = (float*)malloc(K * sizeof(float));
         int i = 0;
         for (int k = num; k < K; ++k) {
-            tmp[i++] = B[k * N + j];
+            temp[i++] = B[k * N + j];
         }
         for (int k = 0; k < num; ++k) {
-            tmp[i++] = B[k * N + j];
+            temp[i++] = B[k * N + j];
         }
         // write_back
         for (int k = 0; k < K; ++k) {
-            B[k * N + j] = tmp[k];
+            B[k * N + j] = temp[k];
         }
     }
 }
@@ -49,11 +49,11 @@ void matrixUp(float *B, const int K, const int N, const int P, const int col, co
 void mma(const float *A, const float *B, float *C, const int M, const int N, const int K) {
     for (int m = 0; m < M; ++m) {
         for (int n = 0; n < N; ++n) {
-            float tmp = 0.0f;
+            float temp = 0.0f;
             for (int k = 0; k < K; ++k) {
-                tmp += A[m * K + k] * B[k * N + n];
+                temp += A[m * K + k] * B[k * N + n];
             }
-            C[m * N + n] += tmp;
+            C[m * N + n] += temp;
         }
     }
 }
