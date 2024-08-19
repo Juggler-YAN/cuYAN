@@ -1,3 +1,7 @@
+/*
+ * dgrad conv
+ */
+
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>

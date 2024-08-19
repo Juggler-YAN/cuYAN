@@ -1,16 +1,26 @@
+/*
+ * 2d conv
+ */
+
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>
 
 #define N 6
 #define IN_C 5
-#define IN_L 7
-#define K_L 3
+#define IN_H 7
+#define IN_W 7
+#define K_H 3
+#define K_W 3
 #define OUT_C 3
-#define OUT_L 3
-#define PAD_L 1
-#define STRIDE_L 2
-#define DILATION_L 2
+#define OUT_H 3
+#define OUT_W 3
+#define PAD_H 1
+#define PAD_W 1
+#define STRIDE_H 2
+#define STRIDE_W 2
+#define DILATION_H 2
+#define DILATION_W 2
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
@@ -18,26 +28,32 @@ void rand_data(float *data, int num, float min, float max) {
     }
 }
 
-void conv1d(const float* x, const float* w, float* y) {
+void conv2d(const float* x, const float* w, float* y) {
 
-#define IX(n, in_c, in_l) (((n) * IN_C + in_c) * IN_L + in_l)
-#define IW(out_c, in_c, k_l) (((out_c) * IN_C + in_c) * K_L + k_l)
-#define IY(n, out_c, out_l) (((n) * OUT_C + out_c) * OUT_L + out_l)
+#define IX(n, in_c, in_h, in_w) ((((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w)
+#define IW(out_c, in_c, k_h, k_w) ((((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w)
+#define IY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
 
     for (int n = 0; n < N; ++n) {
         for (int out_c = 0; out_c < OUT_C; ++out_c) {
-            for (int out_l = 0; out_l < OUT_L; ++out_l) {
-                float temp = 0.0f;
-                for (int k_l = 0; k_l < (DILATION_L - 1) * (K_L - 1) + K_L; k_l += DILATION_L) {
-                    int real_in_l = out_l * STRIDE_L + k_l - PAD_L;
-                    if (real_in_l >= 0 && real_in_l < IN_L) {
-                        int real_k_l = k_l / DILATION_L;
-                        for (int in_c = 0; in_c < IN_C; ++in_c) {
-                            temp += (float)x[IX(n, in_c, real_in_l)] * (float)w[IW(out_c, in_c, real_k_l)];
+            for (int out_h = 0; out_h < OUT_H; ++out_h) {
+                for (int out_w = 0; out_w < OUT_W; ++out_w) {
+                    float temp = 0.0f;
+                    for (int k_h = 0; k_h < (DILATION_H - 1) * (K_H - 1) + K_H; k_h += DILATION_H) {
+                        for (int k_w = 0; k_w < (DILATION_W - 1) * (K_W - 1) + K_W; k_w += DILATION_W) {
+                            int real_in_h = out_h * STRIDE_H + k_h - PAD_H;
+                            int real_in_w = out_w * STRIDE_W + k_w - PAD_W;
+                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < IN_W) {
+                                int real_k_h = k_h / DILATION_H;
+                                int real_k_w = k_w / DILATION_W;
+                                for (int in_c = 0; in_c < IN_C; ++in_c) {
+                                    temp += (float)x[IX(n, in_c, real_in_h, real_in_w)] * (float)w[IW(out_c, in_c, real_k_h, real_k_w)];
+                                }
+                            }
                         }
                     }
+                    y[IY(n, out_c, out_h, out_w)] = temp;
                 }
-                y[IY(n, out_c, out_l)] = temp;
             }
         }
     }
@@ -60,26 +76,26 @@ int main() {
     // Define the x tensor descriptor
     cudnnTensorDescriptor_t x_desc;
     cudnnCreateTensorDescriptor(&x_desc);
-    cudnnSetTensor4dDescriptor(x_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, IN_C, IN_L, 1);
+    cudnnSetTensor4dDescriptor(x_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, IN_C, IN_H, IN_W);
 
     // Define the convolution descriptor
     cudnnFilterDescriptor_t w_desc;
     cudnnCreateFilterDescriptor(&w_desc);
-    cudnnSetFilter4dDescriptor(w_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, OUT_C, IN_C, K_L, 1);
+    cudnnSetFilter4dDescriptor(w_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, OUT_C, IN_C, K_H, K_W);
 
     // Define the convolution descriptor
     cudnnConvolutionDescriptor_t conv_desc;
     cudnnCreateConvolutionDescriptor(&conv_desc);
-    cudnnSetConvolution2dDescriptor(conv_desc, PAD_L, 0, STRIDE_L, 1, DILATION_L, 1, CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT);
+    cudnnSetConvolution2dDescriptor(conv_desc, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W, CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT);
 
     // Define the y tensor descriptor
     cudnnTensorDescriptor_t y_desc;
     cudnnCreateTensorDescriptor(&y_desc);
-    cudnnSetTensor4dDescriptor(y_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, OUT_C, OUT_L, 1);
+    cudnnSetTensor4dDescriptor(y_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, N, OUT_C, OUT_H, OUT_W);
 
-    int size_x = N * IN_C * IN_L;
-    int size_w = OUT_C * IN_C * K_L;
-    int size_y = N * OUT_C * OUT_L;
+    int size_x = N * IN_C * IN_H * IN_W;
+    int size_w = OUT_C * IN_C * K_H * K_W;
+    int size_y = N * OUT_C * OUT_H * OUT_W;
 
     // Allocate host memory for x, w, and y
     float *h_x, *h_y, *h_w;
@@ -112,7 +128,7 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
-    conv1d(h_x, h_w, calc_y);
+    conv2d(h_x, h_w, calc_y);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);

@@ -1,3 +1,7 @@
+/*
+ * 1*1 conv
+ */
+
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>
@@ -6,17 +10,17 @@
 #define IN_C 5
 #define IN_H 7
 #define IN_W 7
-#define K_H 3
-#define K_W 3
+#define K_H 1
+#define K_W 1
 #define OUT_C 3
-#define OUT_H 3
-#define OUT_W 3
-#define PAD_H 1
-#define PAD_W 1
-#define STRIDE_H 2
-#define STRIDE_W 2
-#define DILATION_H 2
-#define DILATION_W 2
+#define OUT_H 7
+#define OUT_W 7
+#define PAD_H 0
+#define PAD_W 0
+#define STRIDE_H 1
+#define STRIDE_W 1
+#define DILATION_H 1
+#define DILATION_W 1
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
@@ -24,35 +28,71 @@ void rand_data(float *data, int num, float min, float max) {
     }
 }
 
-void conv2d(const float* x, const float* w, float* y) {
-
-#define IX(n, in_c, in_h, in_w) ((((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w)
-#define IW(out_c, in_c, k_h, k_w) ((((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w)
-#define IY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
-
-    for (int n = 0; n < N; ++n) {
-        for (int out_c = 0; out_c < OUT_C; ++out_c) {
-            for (int out_h = 0; out_h < OUT_H; ++out_h) {
-                for (int out_w = 0; out_w < OUT_W; ++out_w) {
-                    float temp = 0.0f;
-                    for (int k_h = 0; k_h < (DILATION_H - 1) * (K_H - 1) + K_H; k_h += DILATION_H) {
-                        for (int k_w = 0; k_w < (DILATION_W - 1) * (K_W - 1) + K_W; k_w += DILATION_W) {
-                            int real_in_h = out_h * STRIDE_H + k_h - PAD_H;
-                            int real_in_w = out_w * STRIDE_W + k_w - PAD_W;
-                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < IN_W) {
-                                int real_k_h = k_h / DILATION_H;
-                                int real_k_w = k_w / DILATION_W;
-                                for (int in_c = 0; in_c < IN_C; ++in_c) {
-                                    temp += (float)x[IX(n, in_c, real_in_h, real_in_w)] * (float)w[IW(out_c, in_c, real_k_h, real_k_w)];
-                                }
-                            }
-                        }
-                    }
-                    y[IY(n, out_c, out_h, out_w)] = temp;
+void NCHW2NHWC(const float *old_arr, float *new_arr, const int NUM, const int C, const int H, const int W) {
+    for (int n = 0; n < NUM; ++n) {
+        for (int h = 0; h < H; ++h) {
+            for (int w = 0; w < W; ++w) {
+                for (int c = 0; c < C; ++c) {
+                    new_arr[((n * H + h) * W + w) * C + c] = old_arr[((n * C + c) * H + h) * W + w];
                 }
             }
         }
     }
+}
+
+void NHWC2NCHW(const float *old_arr, float *new_arr, const int NUM, const int H, const int W, const int C) {
+    for (int n = 0; n < NUM; ++n) {
+        for (int c = 0; c < C; ++c) {
+            for (int h = 0; h < H; ++h) {
+                for (int w = 0; w < W; ++w) {
+                    new_arr[((n * C + c) * H + h) * W + w] = old_arr[((n * H + h) * W + w) * C + c];
+                }
+            }
+        }
+    }
+}
+
+void transpose(const float *old_arr, float *new_arr, const int ROW, const int COL) {
+    for (int row = 0; row < ROW; ++row) {
+        for (int col = 0; col < COL; ++col) {
+            new_arr[col * ROW + row] = old_arr[row * COL + col];
+        }
+    }
+}
+
+void gemm(const float *A, const float *B, float *C, const int ROW, const int COL, const int K) {
+    for (int m = 0; m < ROW; ++m) {
+        for (int n = 0; n < COL; ++n) {
+            float temp = 0.0f;
+            for (int k = 0; k < K; ++k) {
+                temp += A[m * K + k] * B[k * COL + n];
+            }
+            C[m * COL + n] = temp;
+        }
+    }
+}
+
+void conv2d(const float* x, const float* w, float* y) {
+
+    int size_x = N * IN_C * IN_H * IN_W;
+    int size_w = OUT_C * IN_C * K_H * K_W;
+    int size_y = N * OUT_C * OUT_H * OUT_W;
+    float *A = (float *)malloc(size_x * sizeof(float));
+    float *B = (float *)malloc(size_w * sizeof(float));
+    float *C = (float *)malloc(size_y * sizeof(float));
+
+    // 1.第2维放到第4维 (N,INC,INH,INW) -> (N*INH*INW,INC)
+    NCHW2NHWC(x, A, N, IN_C, IN_H, IN_W);
+    // 2.转置 (OUT_C,IN_C,1,1) -> (IN_C,OUT_C,1,1)
+    transpose(w, B, OUT_C, IN_C);
+    // 3.矩阵乘 (N*INH*INW,INC) * (IN_C,OUT_C) = (N*INH*INW,OUT_C)
+    gemm(A, B, C, N * IN_H * IN_W, OUT_C, IN_C);
+    // 4.第4维放到第2维 (N*INH*INW,OUT_C) -> (N,OUTC,OUTH,OUTW)
+    NHWC2NCHW(C, y, N, OUT_H, OUT_W, OUT_C);
+
+    free(A);
+    free(B);
+    free(C);
 
 }
 
