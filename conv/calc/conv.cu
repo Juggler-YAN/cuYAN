@@ -87,15 +87,15 @@ int main() {
 
     // Perform forward convolution
     float alpha = 1.0f, beta = 0.0f;
-    cudnnConvolutionForward(cudnn, &alpha, x_desc, d_x, w_desc, d_w, conv_desc, CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, nullptr, 0, &beta, y_desc, d_y);
+    cudnnConvolutionForward(cudnn, &alpha, x_desc, d_x, w_desc, d_w, conv_desc, CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, nullptr, 0, &beta, y_desc, d_y);
 
     // Memcpy: device -> host
     cudaMemcpy(h_y, d_y, size_y * sizeof(float), cudaMemcpyDeviceToHost);
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
-    slidingwindow(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
-    // img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    // slidingwindow(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);
