@@ -4,12 +4,12 @@
 
 1. 1D/2D/3D conv
 2. $1 \times 1$ conv，计算时可等效于 gemm
-3. transpose conv，和 dgrad conv 的计算一致
-4. dilated conv， $dilation > 1$ 的 conv
-5. group conv，split C to n group，g 组 $NHWC_i*C_iRSM=NEFM$，即 $NEFgM$
+3. transpose conv，和 dgrad conv 的计算一致，恢复因为 conv 丢失的信息
+4. dilated conv， $dilation > 1$ 的 conv，增大 conv kernel 捕获范围
+5. group conv，split C to n group，g 组 $NHWC_i*C_iRSM=NEFM$，即 $NEFgM$，可以减少计算量
 6. separable conv
-   1. spatial separable convolution，for example，conv kernel 可以分解为 alpha，beta 两个向量的乘积，可以先 * alpha，再 * beta
-   2. depthwise separable conv，split C to C group，C 组 $NHWC_i*C_iRSM=NEFM$，再经过 $1 \times 1$ conv 
+   1. spatial separable convolution，for example，conv kernel 可以分解为 alpha，beta 两个向量的乘积，可以先 * alpha，再 * beta，可以减少计算量
+   2. depthwise separable conv，split C to C group，C 组 $NHWC_i*C_iRSM=NEFM$，再经过 $1 \times 1$ conv ，可以减少计算量
 7. 可变形 conv
    conv kernel 不固定
 

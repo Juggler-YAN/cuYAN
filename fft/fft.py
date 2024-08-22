@@ -25,6 +25,7 @@ def convfft(x, w):
     # print(np.rot90(w, 2))
     B = np.fft.fft2(np.rot90(w, 2), fsize)
     A = np.fft.fft2(x, fsize)
+    print(fsize)
     AB = np.fft.ifft2(A * B).real[:shape[0], :shape[1]]
     return AB
 
