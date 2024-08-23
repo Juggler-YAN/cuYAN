@@ -6,7 +6,7 @@ using namespace std;
 
 #define PI acos(-1.0)
 
-void print(complex<float> *A, int L) {
+void print(complex<float> *A, const int L) {
     printf("\n");
     for (int i = 0; i < L; ++i) {
         cout << A[i].real() << " " << A[i].imag() << endl;

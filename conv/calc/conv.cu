@@ -1,9 +1,27 @@
 #include <iostream>
 #include <cudnn.h>
 #include <cuda_runtime.h>
-#include "./slidingwindow.h"
-#include "./img2col.h"
+// #include "./slidingwindow.h"
+// #include "./img2col.h"
+#include "./fft.h"
 
+// #define N 6
+// #define IN_C 5
+// #define IN_H 7
+// #define IN_W 7
+// #define K_H 3
+// #define K_W 3
+// #define OUT_C 3
+// #define OUT_H 3
+// #define OUT_W 3
+// #define PAD_H 1
+// #define PAD_W 1
+// #define STRIDE_H 2
+// #define STRIDE_W 2
+// #define DILATION_H 2
+// #define DILATION_W 2
+
+// fft存在限制，pad=0，stride=1，dilation=1
 #define N 6
 #define IN_C 5
 #define IN_H 7
@@ -11,14 +29,14 @@
 #define K_H 3
 #define K_W 3
 #define OUT_C 3
-#define OUT_H 3
-#define OUT_W 3
-#define PAD_H 1
-#define PAD_W 1
-#define STRIDE_H 2
-#define STRIDE_W 2
-#define DILATION_H 2
-#define DILATION_W 2
+#define OUT_H 5
+#define OUT_W 5
+#define PAD_H 0
+#define PAD_W 0
+#define STRIDE_H 1
+#define STRIDE_W 1
+#define DILATION_H 1
+#define DILATION_W 1
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
@@ -94,8 +112,11 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
+    memset(calc_y, 0, size_y * sizeof(float));
     // slidingwindow(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
-    img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    // img2col(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+    convfft(h_x, h_w, calc_y, N, IN_C, IN_H, IN_W, K_H, K_W, OUT_C, OUT_H, OUT_W, PAD_H, PAD_W, STRIDE_H, STRIDE_W, DILATION_H, DILATION_W);
+
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);

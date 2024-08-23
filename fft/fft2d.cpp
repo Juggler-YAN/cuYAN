@@ -19,7 +19,7 @@ void print(const complex<float> *A, const int M, const int N) {
 }
 
 // inv == 1 为 FFT， inv == -1 为 IFFT
-void fft(complex<float> *A, int L, int inv) {
+void fft(complex<float> *A, const int L, const int inv) {
     // 位反转置换
     for (int i = 1, j = 0; i < L; ++i) {
         for (int k = L >> 1; (j ^= k) < k; k >>= 1);
