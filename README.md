@@ -3,6 +3,7 @@ This is my record of researching operator optimization.
 
 ### TODO
 
+- [ ] C++ 和 matlab python fft顺序不一样
 - [ ] gemm
   - [ ] fox
   - [ ] strassen
