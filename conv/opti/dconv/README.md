@@ -1,8 +1,10 @@
 # dgrad conv 优化方案
 
-- [ ] 转换成 $1 \times 1$ conv
+1. 转换成 $1 \times 1$ conv
 
-- [ ] dgrad conv 和 wgrad conv 转换成 group conv
+参考 conv 即可
+
+2. dgrad conv 和 wgrad conv 转换成 group conv
 
 举个例子，conv (p=0，s=2，d=1) 计算为
 
