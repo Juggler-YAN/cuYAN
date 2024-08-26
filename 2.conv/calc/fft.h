@@ -121,7 +121,7 @@ void convfft(const float* x, const float* w, float* y, const int N, const int IN
                 // 5.write_back
                 for (int out_h = 0; out_h < OUT_H; ++out_h) {
                     for (int out_w = 0; out_w < OUT_W; ++out_w) {
-                        // 去pad
+                        // 去pad，fft计算实际上相当于pad=K-1的计算
                         y[IY(n, out_c, out_h, out_w)] += yfft[(out_h + (K_H - 1)) * L_W + out_w + (K_W - 1)].real();
                     }
                 }
