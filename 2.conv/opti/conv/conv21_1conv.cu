@@ -141,26 +141,6 @@ void conv(const float* x, const float* w, float* y) {
         }
     }
 
-    // int size_x = N * IN_C * IN_H * IN_W;
-    // int size_w = OUT_C * IN_C * K_H * K_W;
-    // int size_y = N * OUT_C * OUT_H * OUT_W;
-    // float *A = (float *)malloc(size_x * sizeof(float));
-    // float *B = (float *)malloc(size_w * sizeof(float));
-    // float *C = (float *)malloc(size_y * sizeof(float));
-
-    // // 1.第2维放到第4维 (N,INC,INH,INW) -> (N*INH*INW,INC)
-    // NCHW2NHWC(x, A, N, IN_C, IN_H, IN_W);
-    // // 2.转置 (OUT_C,IN_C,1,1) -> (IN_C,OUT_C,1,1)
-    // transpose(w, B, OUT_C, IN_C);
-    // // 3.矩阵乘 (N*INH*INW,INC) * (IN_C,OUT_C) = (N*INH*INW,OUT_C)
-    // gemm(A, B, C, N * IN_H * IN_W, OUT_C, IN_C);
-    // // 4.第4维放到第2维 (N*INH*INW,OUT_C) -> (N,OUTC,OUTH,OUTW)
-    // NHWC2NCHW(C, y, N, OUT_H, OUT_W, OUT_C);
-
-    // free(A);
-    // free(B);
-    // free(C);
-
 }
 
 int main() {
