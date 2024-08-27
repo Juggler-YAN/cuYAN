@@ -11,7 +11,7 @@
    1. spatial separable convolution，for example，conv kernel 可以分解为 alpha，beta 两个向量的乘积，可以先 * alpha，再 * beta，可以减少计算量
    2. depthwise separable conv，split C to C group，C 组 $NHWC_i*C_iRSM=NEFM$，再经过 $1 \times 1$ conv ，可以减少计算量
 7. 可变形 conv
-   conv kernel 不固定
+   conv kernel 不固定，适当增大或减小 conv kernel 捕获范围，根据重点来处理信息，减少计算量，能使结果更精准
 
 ### 参数
 

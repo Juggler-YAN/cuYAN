@@ -119,6 +119,9 @@ $H \times W$ 大小的卷积核可以转换成 $H \times W$ 个 $1 \times 1$ 卷
 \end{pmatrix}
 ```
 
+- 优点：避免因为pad和dilation产生的补0操作
+- 缺点：本来能够进行数据复用的现在不行了（stride不够大）
+
 2. 转换成 stride_h * stride_w 组 group conv
 
 举个例子，stride_h = stride_w = 2
