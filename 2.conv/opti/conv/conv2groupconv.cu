@@ -96,7 +96,7 @@ void conv(const float* x, const float* w, float* y) {
                                     }
                                 }
                             }
-                            // 4. 雷杰
+                            // 4. 累加
                             int ypos = ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w);
                             y[ypos] += temp;
                         }
