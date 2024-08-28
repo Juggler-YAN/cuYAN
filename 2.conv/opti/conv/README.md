@@ -308,7 +308,7 @@ $C_1$
 \end{pmatrix}
 ```
 
-相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin*2,Hin/2,Win) * (Cout,Cin*2,Hk/2,Wk) = (N,Cout,Hout,Wout)$
+相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin \times 2,Hin/2,Win) * (Cout,Cin \times 2,Hk/2,Wk) = (N,Cout,Hout,Wout)$
 
 - 抽取 $W$ 维补充到 $C$ 维
 
@@ -344,7 +344,7 @@ $C_1$
 \end{pmatrix}
 ```
 
-相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin*2,Hin,Win/2) * (Cout,Cin*2,Hk,Wk/2) = (N,Cout,Hout,Wout)$
+相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin \times 2,Hin,Win/2) * (Cout,Cin \times 2,Hk,Wk/2) = (N,Cout,Hout,Wout)$
 
 - 抽取 $H,W$ 维补充到 $C$ 维
 
@@ -400,13 +400,7 @@ $C_3$
 \end{pmatrix}
 ```
 
-相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin*4,Hin/2,Win/2) * (Cout,Cin*4,Hk/2,Wk/2) = (N,Cout,Hout,Wout)$
+相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin \times 4,Hin/2,Win/2) * (Cout,Cin \times 4,Hk/2,Wk/2) = (N,Cout,Hout,Wout)$
 
 - 优点：解决了C_in和C_out比较小的问题
 - 缺点：stride不够大的话重复访存的问题很难解决
-
-- [ ] 折叠优化
-    - [ ] $C_{in}$ 折叠 抽 H,W 维补充 $C_{in}$ 维
-    - [ ] $C_{out}$ 折叠
-    - [ ] $C_{in}$, $C_{out}$ 折叠
-

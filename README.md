@@ -43,9 +43,6 @@
 
 - [ ] 支持 NHWC 和 NCHW 两种格式
 - [ ] winograd：F(2,3) -> F(n,3)
-- [ ] 代码：conv转换成1*1 conv
-- [ ] 代码：conv转换成group conv
-- [ ] 代码：conv抽取H或W维补充到C_in或Cout维
 
 3. fft
 
