@@ -33,16 +33,16 @@ void conv(const float* x, const float* w, float* y) {
     
     for (int s_h = 0; s_h < STRIDE_H; ++s_h) {
         for (int s_w = 0; s_w < STRIDE_W; ++s_w) {
-            const int NEW_IN_H = (IN_H + 2 * PAD_H) / STRIDE_H + (s_h < (IN_H + 2 * PAD_H) % STRIDE_H ? 1 : 0);
-            const int NEW_IN_W = (IN_W + 2 * PAD_W) / STRIDE_W + (s_w < (IN_W + 2 * PAD_W) % STRIDE_W ? 1 : 0);
+            const int NEW_IN_H = (IN_H + 2 * PAD_H) / STRIDE_H + (s_h < ((IN_H + 2 * PAD_H) % STRIDE_H) ? 1 : 0);
+            const int NEW_IN_W = (IN_W + 2 * PAD_W) / STRIDE_W + (s_w < ((IN_W + 2 * PAD_W) % STRIDE_W) ? 1 : 0);
             const int DILATION_K_H = (K_H - 1) * (STRIDE_H - 1) + K_H;
             const int DILATION_K_W = (K_W - 1) * (STRIDE_W - 1) + K_W;
-            const int NEW_K_H = (DILATION_K_H + 2 * PAD_H) / STRIDE_H + (s_h < (DILATION_K_H + 2 * PAD_H) % STRIDE_H ? 1 : 0);
-            const int NEW_K_W = (DILATION_K_W + 2 * PAD_W) / STRIDE_W + (s_w < (DILATION_K_W + 2 * PAD_W) % STRIDE_W ? 1 : 0);
+            const int NEW_K_H = DILATION_K_H / STRIDE_H + (s_h < (DILATION_K_H % STRIDE_H) ? 1 : 0);
+            const int NEW_K_W = DILATION_K_W / STRIDE_W + (s_w < (DILATION_K_W % STRIDE_W) ? 1 : 0);
             float *xh = (float *)malloc(N * IN_C * NEW_IN_H * NEW_IN_W * sizeof(float));
-            float *wh = (float *)malloc(N * K_C * NEW_K_H * NEW_K_W * sizeof(float));
+            float *wh = (float *)malloc(OUT_C * IN_C * NEW_K_H * NEW_K_W * sizeof(float));
             memset(xh, 0, N * IN_C * NEW_IN_H * NEW_IN_W * sizeof(float));
-            memset(wh, 0, N * K_C * NEW_K_H * NEW_K_W * sizeof(float));
+            memset(wh, 0, OUT_C * IN_C * NEW_K_H * NEW_K_W * sizeof(float));
             // 1. 提取x中第(s_h,s_w)组对应的数据
             for (int n = 0; n < N; ++n) {
                 for (int in_c = 0; in_c < IN_C; ++in_c) {
@@ -75,6 +75,35 @@ void conv(const float* x, const float* w, float* y) {
                     }
                 }
             }
+            // 3. conv
+            for (int n = 0; n < N; ++n) {
+                for (int out_c = 0; out_c < OUT_C; ++out_c) {
+                    for (int out_h = 0; out_h < OUT_H; ++out_h) {
+                        for (int out_w = 0; out_w < OUT_W; ++out_w) {
+                            float temp = 0.0f;
+                            for (int k_h = 0; k_h < NEW_K_H; ++k_h) {
+                                for (int k_w = 0; k_w < NEW_K_W; ++k_w) {
+                                    int real_in_h = out_h + k_h;
+                                    int real_in_w = out_w + k_w;
+                                    if (real_in_h >= 0 && real_in_h < NEW_IN_H && real_in_w >= 0 && real_in_w < NEW_IN_W) {
+                                        int real_k_h = k_h;
+                                        int real_k_w = k_w;
+                                        for (int in_c = 0; in_c < IN_C; ++in_c) {
+                                            int xpos = ((((n) * IN_C + in_c) * NEW_IN_H + real_in_h) * NEW_IN_W + real_in_w);
+                                            int wpos = ((((out_c) * IN_C + in_c) * NEW_K_H + real_k_h) * NEW_K_W + real_k_w);
+                                            temp += (float)xh[xpos] * (float)wh[wpos];
+                                        }
+                                    }
+                                }
+                            }
+                            // 4. 雷杰
+                            int ypos = ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w);
+                            y[ypos] += temp;
+                        }
+                    }
+                }
+            }
+
             free(xh);
             free(wh);
         }
@@ -150,6 +179,7 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
+    rand_data(calc_y, size_y, 0, 0);
     conv(h_x, h_w, calc_y);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
