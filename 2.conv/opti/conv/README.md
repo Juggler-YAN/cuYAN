@@ -403,4 +403,4 @@ $C_3$
 相当于原来的 $(N,Cin,Hin,Win) * (Cout,Cin,Hk,Wk) = (N,Cout,Hout,Wout)$ 变成了 $(N,Cin \times 4,Hin/2,Win/2) * (Cout,Cin \times 4,Hk/2,Wk/2) = (N,Cout,Hout,Wout)$
 
 - 优点：解决了C_in和C_out比较小的问题
-- 缺点：stride不够大的话重复访存的问题很难解决
+- 缺点：限制p=0，d=1；stride不够大的话重复访存的问题很难解决

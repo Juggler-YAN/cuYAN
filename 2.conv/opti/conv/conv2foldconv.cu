@@ -1,5 +1,5 @@
 /*
- * conv折叠优化
+ * conv抽取H,W维补充C维 (限制p=0,d=1)
  * 举例如下，抽W维补充Cin维
  */
 
@@ -7,6 +7,7 @@
 #include <cudnn.h>
 #include <cuda_runtime.h>
 
+#define GROUP 2
 #define N 6
 #define IN_C 5
 #define IN_H 7
@@ -16,12 +17,12 @@
 #define OUT_C 3
 #define OUT_H 3
 #define OUT_W 3
-#define PAD_H 1
-#define PAD_W 1
+#define PAD_H 0
+#define PAD_W 0
 #define STRIDE_H 2
 #define STRIDE_W 2
-#define DILATION_H 2
-#define DILATION_W 2
+#define DILATION_H 1
+#define DILATION_W 1
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
@@ -29,35 +30,71 @@ void rand_data(float *data, int num, float min, float max) {
     }
 }
 
-void conv2d(const float* x, const float* w, float* y) {
-
-#define IX(n, in_c, in_h, in_w) ((((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w)
-#define IW(out_c, in_c, k_h, k_w) ((((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w)
-#define IY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
-
+void conv(const float* x, const float* w, float* y) {
+    
+    float *xh = (float *)malloc(N * IN_C * GROUP * IN_H * (IN_W + GROUP - 1) / GROUP * sizeof(float));
+    float *wh = (float *)malloc(OUT_C * IN_C * GROUP * K_H * (K_W + GROUP - 1) / GROUP * sizeof(float));
+    memset(xh, 0, N * IN_C * GROUP * IN_H * (IN_W + GROUP - 1) / GROUP * sizeof(float));
+    memset(wh, 0, OUT_C * IN_C * GROUP * K_H * (K_W + GROUP - 1) / GROUP * sizeof(float));
+    // 1. 转换x (N,Cin,Hin,Win) -> (N,Cin*GROUP,Hin,Win/GROUP)
+    for (int n = 0; n < N; ++n) {
+        for (int in_c = 0; in_c < IN_C; ++in_c) {
+            for (int in_h = 0; in_h < IN_H; ++in_h) {
+                for (int in_w = 0; in_w < IN_W; ++in_w) {
+                    int real_in_c = (in_w % GROUP) * IN_C + in_c;
+                    int real_in_w = in_w / GROUP;
+                    int pos1 = (((n) * IN_C * GROUP + real_in_c) * IN_H + in_h) * (IN_W + GROUP - 1) / GROUP + real_in_w;
+                    int pos2 = (((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w;
+                    xh[pos1] = x[pos2];
+                }
+            }
+        }
+    }
+    // 2. 转换w (Cout,Cin,Hk,Wk) -> (Cout,Cin \times 2,Hk,Wk/2)
+    for (int out_c = 0; out_c < OUT_C; ++out_c) {
+        for (int in_c = 0; in_c < IN_C; ++in_c) {
+            for (int k_h = 0; k_h < K_H; ++k_h) {
+                for (int k_w = 0; k_w < K_W; ++k_w) {
+                    int real_in_c = (k_w % GROUP) * IN_C + in_c;
+                    int real_k_w = k_w / GROUP;
+                    int pos1 = (((out_c) * IN_C * GROUP + real_in_c) * K_H + k_h) * (K_W + GROUP - 1) / GROUP + real_k_w;
+                    int pos2 = (((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w;
+                    wh[pos1] = w[pos2];
+                }
+            }
+        }
+    }
+    // 3. conv
     for (int n = 0; n < N; ++n) {
         for (int out_c = 0; out_c < OUT_C; ++out_c) {
             for (int out_h = 0; out_h < OUT_H; ++out_h) {
                 for (int out_w = 0; out_w < OUT_W; ++out_w) {
                     float temp = 0.0f;
-                    for (int k_h = 0; k_h < (DILATION_H - 1) * (K_H - 1) + K_H; k_h += DILATION_H) {
-                        for (int k_w = 0; k_w < (DILATION_W - 1) * (K_W - 1) + K_W; k_w += DILATION_W) {
-                            int real_in_h = out_h * STRIDE_H + k_h - PAD_H;
-                            int real_in_w = out_w * STRIDE_W + k_w - PAD_W;
-                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < IN_W) {
-                                int real_k_h = k_h / DILATION_H;
-                                int real_k_w = k_w / DILATION_W;
-                                for (int in_c = 0; in_c < IN_C; ++in_c) {
-                                    temp += (float)x[IX(n, in_c, real_in_h, real_in_w)] * (float)w[IW(out_c, in_c, real_k_h, real_k_w)];
+                    for (int k_h = 0; k_h < K_H; ++k_h) {
+                        for (int k_w = 0; k_w < (K_W + GROUP - 1) / GROUP; ++k_w) {
+                            int real_in_h = out_h * STRIDE_H + k_h;
+                            int real_in_w = out_w + k_w;
+                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < (IN_W + GROUP - 1) / GROUP) {
+                                int real_k_h = k_h;
+                                int real_k_w = k_w;
+                                for (int in_c = 0; in_c < IN_C * GROUP; ++in_c) {
+                                    int xpos = (((n) * IN_C * GROUP + in_c) * IN_H + real_in_h) * (IN_W + GROUP - 1) / GROUP + real_in_w;
+                                    int wpos = (((out_c) * IN_C * GROUP + in_c) * K_H + real_k_h) * (K_W + GROUP - 1) / GROUP + real_k_w;
+                                    temp += (float)xh[xpos] * (float)wh[wpos];
                                 }
                             }
                         }
                     }
-                    y[IY(n, out_c, out_h, out_w)] = temp;
+                    // 4.累加
+                    int ypos = (((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w;
+                    y[ypos] += temp;
                 }
             }
         }
     }
+
+    free(xh);
+    free(wh);
 
 }
 
@@ -129,7 +166,8 @@ int main() {
 
     // Compare
     float *calc_y = (float*)malloc(size_y * sizeof(float));
-    conv2d(h_x, h_w, calc_y);
+    rand_data(calc_y, size_y, 0, 0);
+    conv(h_x, h_w, calc_y);
     float diff = 0.0f;
     for (int i = 0; i < size_y; ++i) {
         diff += (h_y[i] - calc_y[i]);
