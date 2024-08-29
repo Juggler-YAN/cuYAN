@@ -6,21 +6,21 @@
 #include <cudnn.h>
 #include <cuda_runtime.h>
 
-#define N 1
-#define IN_C 1
-#define IN_H 3
-#define IN_W 3
-#define K_H 1
-#define K_W 1
-#define OUT_C 1
-#define OUT_H 3
-#define OUT_W 3
-#define PAD_H 0
-#define PAD_W 0
-#define STRIDE_H 1
-#define STRIDE_W 1
-#define DILATION_H 1
-#define DILATION_W 1
+#define N 6
+#define IN_C 5
+#define IN_H 7
+#define IN_W 7
+#define K_H 2
+#define K_W 2
+#define OUT_C 3
+#define OUT_H 4
+#define OUT_W 4
+#define PAD_H 1
+#define PAD_W 1
+#define STRIDE_H 2
+#define STRIDE_W 2
+#define DILATION_H 2
+#define DILATION_W 2
 
 void rand_data(float *data, int num, float min, float max) {
     for (int i = 0; i < num; i++) {
@@ -74,26 +74,80 @@ void gemm(const float *A, const float *B, float *C, const int ROW, const int COL
 
 void dwgrad(const float *dy, const float *x, float *dw) {
 
-    int size_dy = N * OUT_C * IN_H * IN_W;
-    int size_x = N * IN_C * IN_H * IN_W;
-    int size_dw = OUT_C * IN_C * 1 * 1;
-    float *A = (float *)malloc(size_dy * sizeof(float));
-    float *Atran = (float *)malloc(size_dy * sizeof(float));
-    float *B = (float *)malloc(size_x * sizeof(float));
-    float *C = (float *)malloc(size_dw * sizeof(float));
+#define NEW_OUT_H ((OUT_H - 1) * (STRIDE_H - 1) + OUT_H)
+#define NEW_OUT_W ((OUT_W - 1) * (STRIDE_W - 1) + OUT_W)
 
-    // 1.第2维放到第4维 (N,OUTC,INH,INW) -> (OUTC,N*INH*INW)
-    NCHW2NHWC(dy, A, N, OUT_C, IN_H, IN_W);
-    transpose(A, Atran, N * IN_H * IN_W, OUT_C);
-    // 2.第4维放到第2维 (N,IN_C,INH,INW) -> (N*INH*INW,INC)
-    NCHW2NHWC(x, B, N, IN_C, IN_H, IN_W);
-    // 3.矩阵乘 (OUTC,N*INH*INW) * (N*INH*INW,INC) = (OUTC,INC)
-    gemm(Atran, B, dw, OUT_C, IN_C, N * IN_H * IN_W);
+    for (int k_h = 0; k_h < K_H; ++k_h) {
+        for (int k_w = 0; k_w < K_W; ++k_w) {
+            int size_x = N * IN_C * NEW_OUT_H * NEW_OUT_W;
+            int size_dy = N * OUT_C * NEW_OUT_H * NEW_OUT_W;
+            int size_dw = OUT_C * IN_C * 1 * 1;
+            float *xh = (float *)malloc(size_x * sizeof(float));
+            float *dyh = (float *)malloc(size_dy * sizeof(float));
+            float *dwh = (float *)malloc(size_dw * sizeof(float));
+            memset(xh, 0, size_x * sizeof(float));
+            memset(dyh, 0, size_dy * sizeof(float));
+            memset(dwh, 0, size_dw * sizeof(float));
+            // 1. 提取x中的对应数据 (N,INC,INH,INW)->(N,INC,OUTH,OUTW)
+            for (int n = 0; n < N; ++n) {
+                for (int in_c = 0; in_c < IN_C; ++in_c) {
+                    for (int in_h = 0; in_h < NEW_OUT_H; ++in_h) {
+                        for (int in_w = 0; in_w < NEW_OUT_W; ++in_w) {
+                            int real_in_h = in_h + k_h * DILATION_H - PAD_H;
+                            int real_in_w = in_w + k_w * DILATION_W - PAD_W;
+                            if (real_in_h >= 0 && real_in_h < IN_H && real_in_w >= 0 && real_in_w < IN_W) {
+                                int pos1 = ((n * IN_C + in_c) * NEW_OUT_H + in_h) * NEW_OUT_W + in_w;
+                                int pos2 = ((n * IN_C + in_c) * IN_H + real_in_h) * IN_W + real_in_w;
+                                xh[pos1] = x[pos2];
+                            }
+                        }
+                    }
+                }
+            }
+            // 2. 提取dy中的对应数据 (N,OUTC,OUTH,OUTW)->(N,OUTC,OUTH,OUTW)
+            for (int n = 0; n < N; ++n) {
+                for (int out_c = 0; out_c < OUT_C; ++out_c) {
+                    for (int out_h = 0; out_h < NEW_OUT_H; out_h += STRIDE_H) {
+                        for (int out_w = 0; out_w < NEW_OUT_W; out_w += STRIDE_W) {
+                            if (out_h % STRIDE_H == 0 && out_w % STRIDE_W == 0) {
+                                int real_out_h = out_h / STRIDE_H;
+                                int real_out_w = out_w / STRIDE_W;
+                                int pos1 = ((n * OUT_C + out_c) * NEW_OUT_H + out_h) * NEW_OUT_W + out_w;
+                                int pos2 = ((n * OUT_C + out_c) * OUT_H + real_out_h) * OUT_W + real_out_w;
+                                dyh[pos1] = dy[pos2];
+                            }
+                        }
+                    }
+                }
+            }
+            // 3. 1*1 conv
+            float *A = (float *)malloc(size_x * sizeof(float));
+            float *Atran = (float *)malloc(size_x * sizeof(float));
+            float *B = (float *)malloc(size_dy * sizeof(float));
+            float *C = (float *)malloc(size_dw * sizeof(float));
+            // (1) 第4维放到第2维 (N,INC,OUTH,OUTW) -> (INC,N*OUTH*OUTW)
+            NCHW2NHWC(xh, A, N, IN_C, NEW_OUT_H, NEW_OUT_W);
+            transpose(A, Atran, N * NEW_OUT_H * NEW_OUT_W, IN_C);
+            // (2) 第2维放到第4维 (N,OUTC,OUTH,OUTW) -> (N*OUTH*OUTW,OUTC)
+            NCHW2NHWC(dyh, B, N, OUT_C, NEW_OUT_H, NEW_OUT_W);
+            // (3) 矩阵乘 (INC,N*OUTH*OUTW) * (N*OUTH*OUTW,OUTC) = (INC,OUTC)
+            gemm(Atran, B, C, IN_C, OUT_C, N * NEW_OUT_H * NEW_OUT_W);
+            // (4) 转置
+            transpose(C, dwh, IN_C, OUT_C);
+            // 4. 累加
+            for (int i = 0; i < size_dw; ++i) {
+                dw[(i * K_H + k_h) * K_W + k_w] = dwh[i];
+            }
+            free(A);
+            free(Atran);
+            free(B);
+            free(C);
+            free(xh);
+            free(dyh);
+            free(dwh);
 
-    free(A);
-    free(Atran);
-    free(B);
-    free(C);
+        }
+    }
 
 }
 
@@ -165,6 +219,7 @@ int main() {
 
     // Compare
     float *calc_dw = (float*)malloc(size_dw * sizeof(float));
+    rand_data(calc_dw, size_dw, 0, 0);
     dwgrad(h_dy, h_x, calc_dw);
     float diff = 0.0f;
     for (int i = 0; i < size_dw; ++i) {

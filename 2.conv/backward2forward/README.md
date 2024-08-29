@@ -154,4 +154,4 @@ $$\partial{X} = padding(\partial{Y}) \ast rot(W)$$
 
 即
 
-$$\partial{W} = \partial{Y} \ast X $$
+$$\partial{W} = X \ast \partial{Y} $$

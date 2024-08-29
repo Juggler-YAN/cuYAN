@@ -52,14 +52,6 @@ void NHWC2NCHW(const float *old_arr, float *new_arr, const int NUM, const int H,
     }
 }
 
-void transpose(const float *old_arr, float *new_arr, const int ROW, const int COL) {
-    for (int row = 0; row < ROW; ++row) {
-        for (int col = 0; col < COL; ++col) {
-            new_arr[col * ROW + row] = old_arr[row * COL + col];
-        }
-    }
-}
-
 void gemm(const float *A, const float *B, float *C, const int ROW, const int COL, const int K) {
     for (int m = 0; m < ROW; ++m) {
         for (int n = 0; n < COL; ++n) {

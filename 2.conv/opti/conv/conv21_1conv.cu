@@ -77,12 +77,10 @@ void conv(const float* x, const float* w, float* y) {
 #define NEW_K_H ((K_H - 1) * (DILATION_H - 1) + K_H)
 #define NEW_K_W ((K_W - 1) * (DILATION_W - 1) + K_W)
 
-    // 1. (kh,kw)
     for (int k_h = 0; k_h < NEW_K_H; k_h += DILATION_H) {
         for (int k_w = 0; k_w < NEW_K_W; k_w += DILATION_W) {
             int real_k_h = k_h / DILATION_H;
             int real_k_w = k_w / DILATION_W;
-            // 2. 提取x中的对应数据 (N,INC,INH,INW)->(N,INC,OUTH,OUTW)
             int size_x = N * IN_C * OUT_H * OUT_W;
             int size_w = OUT_C * IN_C * 1 * 1;
             int size_y = N * OUT_C * OUT_H * OUT_W;
@@ -92,6 +90,7 @@ void conv(const float* x, const float* w, float* y) {
             memset(xh, 0, size_x * sizeof(float));
             memset(wh, 0, size_w * sizeof(float));
             memset(yh, 0, size_y * sizeof(float));
+            // 1. 提取x中的对应数据 (N,INC,INH,INW)->(N,INC,OUTH,OUTW)
             for (int n = 0; n < N; ++n) {
                 for (int in_c = 0; in_c < IN_C; ++in_c) {
                     for (int in_h = 0; in_h < OUT_H; ++in_h) {
@@ -107,7 +106,7 @@ void conv(const float* x, const float* w, float* y) {
                     }
                 }
             }
-            // 3. 提取w中的对应数据 (OUTC,INC,KH,KW)->第(kh,kw)个(OUTC,INC,1，1)
+            // 2. 提取w中的对应数据 (OUTC,INC,KH,KW)->第(kh,kw)个(OUTC,INC,1，1)
             for (int out_c = 0; out_c < OUT_C; ++out_c) {
                 for (int in_c = 0; in_c < IN_C; ++in_c) {
                     int pos1 = out_c * IN_C + in_c;
@@ -115,18 +114,19 @@ void conv(const float* x, const float* w, float* y) {
                     wh[pos1] = w[pos2];
                 }
             }
+            // 3. 1*1 conv
             float *A = (float *)malloc(size_x * sizeof(float));
             float *B = (float *)malloc(size_w * sizeof(float));
             float *C = (float *)malloc(size_y * sizeof(float));
-            // 4.第2维放到第4维 (N,INC,OUTH,OUTW) -> (N*OUTH*OUTW,INC)
+            // (1) 第2维放到第4维 (N,INC,OUTH,OUTW) -> (N*OUTH*OUTW,INC)
             NCHW2NHWC(xh, A, N, IN_C, OUT_H, OUT_W);
-            // 5.转置 (OUT_C,IN_C,1,1) -> (IN_C,OUT_C,1,1)
+            // (2) 转置 (OUT_C,IN_C,1,1) -> (IN_C,OUT_C,1,1)
             transpose(wh, B, OUT_C, IN_C);
-            // 6.矩阵乘 (N*OUTH*OUTW,INC) * (IN_C,OUT_C) = (N*INH*INW,OUT_C)
+            // (3) 矩阵乘 (N*OUTH*OUTW,INC) * (IN_C,OUT_C) = (N*INH*INW,OUT_C)
             gemm(A, B, C, N * OUT_H * OUT_W, OUT_C, IN_C);
-            // 7.第4维放到第2维 (N*INH*INW,OUT_C) -> (N,OUTC,OUTH,OUTW)
+            // (4) 第4维放到第2维 (N*INH*INW,OUT_C) -> (N,OUTC,OUTH,OUTW)
             NHWC2NCHW(C, yh, N, OUT_H, OUT_W, OUT_C);
-            // 8.写回+累加
+            // 4. 写回+累加
             for (int i = 0; i < size_y; ++i) {
                 y[i] += yh[i];
             }
