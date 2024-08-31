@@ -28,7 +28,7 @@ void rand_data(float *data, int num, float min, float max) {
     }
 }
 
-void dwgrad(const float *dy, const float *x, float *dw) {
+void wgrad(const float *dy, const float *x, float *dw) {
 
 #define IDY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
 #define IX(n, in_c, in_h, in_w) ((((n) * IN_C + in_c) * IN_H + in_h) * IN_W + in_w)
@@ -50,7 +50,7 @@ void dwgrad(const float *dy, const float *x, float *dw) {
                                 int real_out_h = out_h / STRIDE_H;
                                 int real_out_w = out_w / STRIDE_W;
                                 for (int n = 0; n < N; ++n) {
-                                    temp += (float)dy[IDY(n, out_c, real_out_h, real_out_w)] * (float)x[IX(n, in_c, real_in_h, real_in_w)];
+                                    temp += (float)x[IX(n, in_c, real_in_h, real_in_w)] * (float)dy[IDY(n, out_c, real_out_h, real_out_w)];
                                 }
                             }
                         }
@@ -131,7 +131,7 @@ int main() {
 
     // Compare
     float *calc_dw = (float*)malloc(size_dw * sizeof(float));
-    dwgrad(h_dy, h_x, calc_dw);
+    wgrad(h_dy, h_x, calc_dw);
     float diff = 0.0f;
     for (int i = 0; i < size_dw; ++i) {
         diff += (h_dw[i] - calc_dw[i]);

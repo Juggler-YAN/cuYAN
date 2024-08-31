@@ -4,7 +4,9 @@
 
 参考 conv 即可
 
-2. dgrad conv 和 wgrad conv 转换成 group conv
+2. dgrad conv 和 wgrad conv 转换成 stride_h * stride_w 组 stride = 1 的 conv
+
+可参考 conv 实现，但因为 dgrad conv 和 wgrad conv 会有很多 0，所以这个方法在实际计算是反而可以更好
 
 举个例子，conv (p=0，s=2，d=1) 计算为
 
@@ -154,7 +156,7 @@ dgrad conv
 \end{align}
 ```
 
-convBD 拆成 $stride_h*stride_w$ 分组 conv 进行计算，这样计算的好处是可以避免补 0，convBF 同理
+convBF 同理
 
 ```math
 \begin{align}
@@ -204,3 +206,4 @@ wgrad conv
 \end{align}
 ```
 
+可以看到，这样计算的好处是输入基本上不变，只需要对卷积核进行处理（不用再考虑填充0之类的操作），大大减小了计算量

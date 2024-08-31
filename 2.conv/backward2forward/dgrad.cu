@@ -28,7 +28,7 @@ void rand_data(float *data, int num, float min, float max) {
     }
 }
 
-void dbgrad(const float *dy, const float *w, float *dx) {
+void dgrad(const float *dy, const float *w, float *dx) {
 
 #define IDY(n, out_c, out_h, out_w) ((((n) * OUT_C + out_c) * OUT_H + out_h) * OUT_W + out_w)
 #define IW(out_c, in_c, k_h, k_w) ((((out_c) * IN_C + in_c) * K_H + k_h) * K_W + k_w)
@@ -137,7 +137,7 @@ int main() {
     
     // Compare
     float *calc_dx = (float*)malloc(size_dx * sizeof(float));
-    dbgrad(h_dy, h_w, calc_dx);
+    dgrad(h_dy, h_w, calc_dx);
     float diff = 0.0f;
     for (int i = 0; i < size_dx; ++i) {
         diff += (h_dx[i] - calc_dx[i]);
